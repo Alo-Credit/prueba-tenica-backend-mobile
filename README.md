@@ -7,6 +7,8 @@ API simulada de una fintech de créditos (**Alo Credit**), construida en Node.js
 - **CORS abierto** y **log de cada petición** en consola.
 - Utilidades para probar el manejo de errores del candidato: latencia simulada (`?delay`) y error forzado (`?fail`).
 
+> 📋 **¿Eres el/la candidato/a?** Lee el enunciado de la prueba en **[PRUEBA_TECNICA.md](PRUEBA_TECNICA.md)**.
+
 ---
 
 ## Requisitos
@@ -58,7 +60,77 @@ docker compose down
 
 ---
 
+## Diagramas
+
+### Flujo de autenticación y consumo (secuencia)
+
+```mermaid
+sequenceDiagram
+    participant App as App Android
+    participant API as Alo Credit Mock API
+
+    App->>API: POST /auth/login { documento, pin }
+    alt credenciales válidas
+        API-->>App: 200 { token (JWT, exp 4h) }
+    else inválidas
+        API-->>App: 401 { error: "Credenciales invalidas" }
+    end
+
+    Note over App: Guarda el token y lo envía en Authorization: Bearer
+
+    App->>API: GET /loans (Bearer token)
+    API-->>App: 200 [ créditos... ]
+
+    App->>API: GET /loans/:id (Bearer token)
+    alt id existe
+        API-->>App: 200 { crédito + pagos[] }
+    else no existe
+        API-->>App: 404 { error: "Credito no encontrado" }
+    end
+
+    App->>API: POST /loan-applications { monto, cuotas }
+    alt validación OK
+        API-->>App: 201 { id, estado: APROBADA | EN_REVISION }
+    else validación falla
+        API-->>App: 422 { detalle por campo }
+    end
+
+    Note over App,API: Sin token o token expirado → 401 en cualquier endpoint protegido
+```
+
+### Mapa de endpoints
+
+```mermaid
+flowchart TD
+    C([App Android]) -->|Bearer token| G{Alo Credit Mock API}
+    G --> H["GET /health<br/>(público)"]
+    G --> L["POST /auth/login<br/>(público → JWT)"]
+    G --> P1["GET /loans 🔒"]
+    G --> P2["GET /loans/:id 🔒"]
+    G --> P3["POST /loan-applications 🔒"]
+
+    P1 -.->|?delay=ms| D[latencia simulada]
+    P1 -.->|?fail=true| F[error 500 forzado]
+
+    subgraph datos["Datos en memoria (sin BD)"]
+        CD[Cliente Demo] --- CR["4 créditos<br/>ACTIVO · PAGADO · EN_MORA · EN_REVISION"]
+        CR --- PG["plan de pagos<br/>PAGADA / PENDIENTE / VENCIDA"]
+    end
+
+    P1 --> datos
+    P2 --> datos
+```
+
 ## Endpoints
+
+### 0. `GET /health`
+
+Endpoint público (sin token) para verificar que el servidor está arriba.
+
+**200 OK**
+```json
+{ "status": "ok", "service": "alo-credit-mock", "uptime": 12.34 }
+```
 
 ### 1. `POST /auth/login`
 
@@ -190,7 +262,11 @@ En la raíz del proyecto encontrarás **`Alo-Credit.postman_collection.json`** c
 
 El login guarda automáticamente el `token` en la variable de colección `{{token}}`, que las demás peticiones reutilizan en el header `Authorization`.
 
-**Cómo importarla:** Postman → *Import* → selecciona el archivo JSON.
+**Cómo importarla:** Postman → *Import* → selecciona el archivo JSON. Opcionalmente importa también el environment **`Alo-Credit.postman_environment.json`** para gestionar `baseUrl` por entorno (local / Docker).
+
+### Alternativa: `requests.http`
+
+Si usas VS Code, el archivo **`requests.http`** (extensión *REST Client*) tiene todas las peticiones listas con "Send Request", sin necesidad de Postman.
 
 ---
 
@@ -198,11 +274,14 @@ El login guarda automáticamente el `token` en la variable de colección `{{toke
 
 ```
 .
-├── server.js                              # Toda la lógica de la API
+├── server.js                               # Toda la lógica de la API
 ├── package.json
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
 ├── README.md
-└── Alo-Credit.postman_collection.json
+├── PRUEBA_TECNICA.md                       # Enunciado para el candidato Android
+├── requests.http                           # Peticiones para REST Client (VS Code)
+├── Alo-Credit.postman_collection.json      # Colección de Postman
+└── Alo-Credit.postman_environment.json     # Environment de Postman (baseUrl / token)
 ```

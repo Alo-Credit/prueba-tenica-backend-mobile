@@ -1,0 +1,84 @@
+### Alo Credit - Mock Backend
+### Archivo para la extension "REST Client" de VS Code (humao.rest-client).
+### Ejecuta cada peticion con "Send Request" (aparece sobre cada bloque ###).
+### El login guarda el token en la variable @token para las demas peticiones.
+
+@baseUrl = http://localhost:3000
+
+### 0. Health check (publico)
+GET {{baseUrl}}/health
+
+### 1. Login OK -> guarda el token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "documento": "123456789",
+  "pin": "1234"
+}
+
+### Variable con el token del login anterior
+@token = {{login.response.body.token}}
+
+### 1b. Login con credenciales invalidas -> 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "documento": "000000000",
+  "pin": "9999"
+}
+
+### 2. Listar creditos (requiere token)
+GET {{baseUrl}}/loans
+Authorization: Bearer {{token}}
+
+### 2b. Listar creditos SIN token -> 401
+GET {{baseUrl}}/loans
+
+### 2c. Simular latencia de 2 segundos
+GET {{baseUrl}}/loans?delay=2000
+Authorization: Bearer {{token}}
+
+### 2d. Forzar error 500
+GET {{baseUrl}}/loans?fail=true
+Authorization: Bearer {{token}}
+
+### 3. Detalle de credito con plan de pagos
+GET {{baseUrl}}/loans/1
+Authorization: Bearer {{token}}
+
+### 3b. Detalle de credito inexistente -> 404
+GET {{baseUrl}}/loans/999
+Authorization: Bearer {{token}}
+
+### 4. Solicitud de credito APROBADA (monto <= 2.000.000)
+POST {{baseUrl}}/loan-applications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "monto": 1500000,
+  "cuotas": 12
+}
+
+### 4b. Solicitud EN_REVISION (monto > 2.000.000)
+POST {{baseUrl}}/loan-applications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "monto": 3500000,
+  "cuotas": 18
+}
+
+### 4c. Solicitud invalida -> 422 (detalle por campo)
+POST {{baseUrl}}/loan-applications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "monto": 50000,
+  "cuotas": 36
+}

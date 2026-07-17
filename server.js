@@ -164,6 +164,14 @@ function autenticar(req, res, next) {
 // ---------------------------------------------------------------------------
 
 /**
+ * GET /health
+ * Endpoint publico (sin token) para verificar que el servidor esta arriba.
+ */
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', service: 'alo-credit-mock', uptime: process.uptime() });
+});
+
+/**
  * POST /auth/login
  * Body: { documento, pin }
  * Responde { token } si coincide con el cliente demo, si no 401.
