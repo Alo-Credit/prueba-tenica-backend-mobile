@@ -33,11 +33,12 @@ app.use((req, res, next) => {
 // ---------------------------------------------------------------------------
 // Datos semilla (en memoria)
 // ---------------------------------------------------------------------------
-const CLIENTE_DEMO = {
-  documento: '123456789',
-  pin: '1234',
-  nombre: 'Cliente Demo',
-};
+// Clientes demo. El primero (123456789) es el principal documentado.
+const CLIENTES = [
+  { documento: '123456789', pin: '1234', nombre: 'Cliente Demo' },
+  { documento: '987654321', pin: '2468', nombre: 'Maria Gomez' },
+  { documento: '1122334455', pin: '1357', nombre: 'Carlos Ramirez' },
+];
 
 /**
  * Genera un plan de pagos (cuotas) para un credito.
@@ -75,48 +76,57 @@ function generarPlanDePagos(numeroCuotas, valorCuota, fechaBase, cuotasPagadas, 
   return pagos;
 }
 
-// 4 creditos del cliente demo en distintos estados
+/**
+ * Fabrica un credito con su plan de pagos ya generado.
+ * @param {string} documento        cedula del cliente dueno del credito
+ * @param {number} id               identificador del credito
+ * @param {number} monto            monto total en COP
+ * @param {number} cuotas           numero de cuotas
+ * @param {string} estado           ACTIVO | PAGADO | EN_MORA | EN_REVISION
+ * @param {string} fecha            fecha de desembolso (YYYY-MM-DD)
+ * @param {number} saldoPendiente   saldo pendiente en COP
+ * @param {string} fechaPrimeraCuota fecha de la primera cuota (YYYY-MM-DD)
+ * @param {number} pagadas          cuotas ya PAGADA
+ * @param {number} vencidas         cuotas VENCIDA (despues de las pagadas)
+ */
+function credito(documento, id, monto, cuotas, estado, fecha, saldoPendiente, fechaPrimeraCuota, pagadas, vencidas) {
+  const valorCuota = Math.round(monto / cuotas);
+  return {
+    id: String(id),
+    documento,
+    monto,
+    cuotas,
+    estado,
+    fecha,
+    saldoPendiente,
+    pagos: generarPlanDePagos(cuotas, valorCuota, fechaPrimeraCuota, pagadas, vencidas),
+  };
+}
+
+// Creditos de los 3 clientes, en distintos estados. Cada credito pertenece a un
+// documento (el endpoint /loans filtra por el cliente autenticado en el token).
 const CREDITOS = [
-  {
-    id: '1',
-    monto: 1500000,
-    cuotas: 12,
-    estado: 'ACTIVO',
-    fecha: '2025-01-15',
-    saldoPendiente: 875000,
-    // 5 cuotas pagadas, 0 vencidas, resto pendiente
-    pagos: generarPlanDePagos(12, 125000, '2025-02-15', 5, 0),
-  },
-  {
-    id: '2',
-    monto: 800000,
-    cuotas: 6,
-    estado: 'PAGADO',
-    fecha: '2024-06-10',
-    saldoPendiente: 0,
-    // todas pagadas
-    pagos: generarPlanDePagos(6, 133333, '2024-07-10', 6, 0),
-  },
-  {
-    id: '3',
-    monto: 3000000,
-    cuotas: 24,
-    estado: 'EN_MORA',
-    fecha: '2024-11-01',
-    saldoPendiente: 2250000,
-    // 6 pagadas, 3 vencidas, resto pendiente
-    pagos: generarPlanDePagos(24, 156250, '2024-12-01', 6, 3),
-  },
-  {
-    id: '4',
-    monto: 500000,
-    cuotas: 3,
-    estado: 'EN_REVISION',
-    fecha: '2026-07-10',
-    saldoPendiente: 500000,
-    // ninguna pagada (aun en revision)
-    pagos: generarPlanDePagos(3, 166667, '2026-08-10', 0, 0),
-  },
+  // --- Cliente Demo (123456789) ---
+  credito('123456789', 1, 1500000, 12, 'ACTIVO', '2025-01-15', 875000, '2025-02-15', 5, 0),
+  credito('123456789', 2, 800000, 6, 'PAGADO', '2024-06-10', 0, '2024-07-10', 6, 0),
+  credito('123456789', 3, 3000000, 24, 'EN_MORA', '2024-11-01', 2250000, '2024-12-01', 6, 3),
+  credito('123456789', 4, 500000, 3, 'EN_REVISION', '2026-07-10', 500000, '2026-08-10', 0, 0),
+  credito('123456789', 5, 2200000, 18, 'ACTIVO', '2025-03-20', 1500000, '2025-04-20', 4, 0),
+  credito('123456789', 6, 1000000, 9, 'PAGADO', '2024-02-05', 0, '2024-03-05', 9, 0),
+
+  // --- Maria Gomez (987654321) ---
+  credito('987654321', 7, 4500000, 24, 'ACTIVO', '2025-02-10', 3900000, '2025-03-10', 3, 0),
+  credito('987654321', 8, 1200000, 12, 'EN_MORA', '2024-12-15', 900000, '2025-01-15', 3, 2),
+  credito('987654321', 9, 600000, 4, 'PAGADO', '2024-08-01', 0, '2024-09-01', 4, 0),
+  credito('987654321', 10, 2800000, 18, 'EN_REVISION', '2026-07-05', 2800000, '2026-08-05', 0, 0),
+  credito('987654321', 11, 1750000, 15, 'ACTIVO', '2025-04-12', 1200000, '2025-05-12', 4, 0),
+
+  // --- Carlos Ramirez (1122334455) ---
+  credito('1122334455', 12, 900000, 6, 'PAGADO', '2024-05-20', 0, '2024-06-20', 6, 0),
+  credito('1122334455', 13, 3500000, 24, 'EN_MORA', '2024-10-01', 3100000, '2024-11-01', 2, 3),
+  credito('1122334455', 14, 250000, 2, 'ACTIVO', '2025-06-01', 130000, '2025-07-01', 1, 0),
+  credito('1122334455', 15, 5000000, 24, 'EN_REVISION', '2026-07-12', 5000000, '2026-08-12', 0, 0),
+  credito('1122334455', 16, 1400000, 12, 'ACTIVO', '2025-05-08', 1050000, '2025-06-08', 3, 0),
 ];
 
 // Contador para ids de nuevas solicitudes de credito
@@ -179,9 +189,11 @@ app.get('/health', (req, res) => {
 app.post('/auth/login', (req, res) => {
   const { documento, pin } = req.body || {};
 
-  if (documento === CLIENTE_DEMO.documento && pin === CLIENTE_DEMO.pin) {
+  const cliente = CLIENTES.find((c) => c.documento === documento && c.pin === pin);
+
+  if (cliente) {
     const token = jwt.sign(
-      { documento: CLIENTE_DEMO.documento, nombre: CLIENTE_DEMO.nombre },
+      { documento: cliente.documento, nombre: cliente.nombre },
       JWT_SECRET,
       { expiresIn: TOKEN_EXPIRACION }
     );
@@ -205,8 +217,11 @@ app.get('/loans', autenticar, async (req, res) => {
     return res.status(500).json({ error: 'Error interno del servidor (simulado)' });
   }
 
-  // Devolvemos la lista sin el plan de pagos detallado (resumen)
-  const resumen = CREDITOS.map(({ pagos, ...resto }) => resto);
+  // Solo los creditos del cliente autenticado (segun el documento del token).
+  // Devolvemos un resumen sin el plan de pagos ni el documento interno.
+  const resumen = CREDITOS
+    .filter((c) => c.documento === req.cliente.documento)
+    .map(({ pagos, documento, ...resto }) => resto);
   return res.json(resumen);
 });
 
@@ -222,13 +237,19 @@ app.get('/loans/:id', autenticar, async (req, res) => {
     return res.status(500).json({ error: 'Error interno del servidor (simulado)' });
   }
 
-  const credito = CREDITOS.find((c) => c.id === req.params.id);
+  // El credito debe existir Y pertenecer al cliente autenticado. Si es de otro
+  // cliente respondemos 404 (no revelamos que existe para otro documento).
+  const creditoEncontrado = CREDITOS.find(
+    (c) => c.id === req.params.id && c.documento === req.cliente.documento
+  );
 
-  if (!credito) {
+  if (!creditoEncontrado) {
     return res.status(404).json({ error: 'Credito no encontrado' });
   }
 
-  return res.json(credito);
+  // No exponemos el campo interno 'documento'.
+  const { documento, ...detalle } = creditoEncontrado;
+  return res.json(detalle);
 });
 
 /**

@@ -50,13 +50,17 @@ docker compose down
 
 ---
 
-## Cliente demo
+## Clientes demo
 
-| Campo      | Valor          |
-|------------|----------------|
-| documento  | `123456789`    |
-| pin        | `1234`         |
-| nombre     | `Cliente Demo` |
+Hay **3 clientes** en memoria. Cada token solo puede ver **sus propios** créditos (ver nota de _scoping_ en `GET /loans`).
+
+| documento     | pin    | nombre          | créditos |
+|---------------|--------|-----------------|----------|
+| `123456789`   | `1234` | Cliente Demo    | 6        |
+| `987654321`   | `2468` | Maria Gomez     | 5        |
+| `1122334455`  | `1357` | Carlos Ramirez  | 5        |
+
+> El principal para la prueba es **`123456789` / `1234`**; los otros dos sirven para verificar que la app usa el token correcto y que cada cliente solo ve lo suyo.
 
 ---
 
@@ -113,12 +117,12 @@ flowchart TD
     P1 -.->|?fail=true| F[error 500 forzado]
 
     subgraph datos["Datos en memoria (sin BD)"]
-        CD[Cliente Demo] --- CR["4 créditos<br/>ACTIVO · PAGADO · EN_MORA · EN_REVISION"]
+        CD["3 clientes"] --- CR["16 créditos (5-6 por cliente)<br/>ACTIVO · PAGADO · EN_MORA · EN_REVISION"]
         CR --- PG["plan de pagos<br/>PAGADA / PENDIENTE / VENCIDA"]
     end
 
-    P1 --> datos
-    P2 --> datos
+    P1 -->|filtra por token| datos
+    P2 -->|filtra por token| datos
 ```
 
 ## Endpoints
@@ -155,7 +159,9 @@ Autentica al cliente demo y devuelve un JWT (válido 4 horas).
 
 ### 2. `GET /loans`
 
-Lista los créditos del cliente demo. **Requiere** header `Authorization: Bearer <token>`.
+Lista los créditos **del cliente autenticado** (según el `documento` del token). **Requiere** header `Authorization: Bearer <token>`.
+
+> 🔐 **Scoping:** cada cliente solo recibe sus propios créditos. Con otro token verás otra lista distinta.
 
 **Query params opcionales**
 - `?delay=2000` → simula 2 s de latencia.
@@ -191,10 +197,11 @@ Detalle de un crédito, incluyendo su **plan de pagos** (`pagos[]`). Requiere to
 }
 ```
 
-**404 Not Found** (id inexistente)
+**404 Not Found** (id inexistente **o crédito de otro cliente**)
 ```json
 { "error": "Credito no encontrado" }
 ```
+> Por seguridad, pedir un crédito que pertenece a otro cliente también responde `404` (no se revela que existe).
 
 ---
 
@@ -243,7 +250,9 @@ Cualquier petición a endpoints protegidos **sin token** o con **token expirado/
 
 ## Datos semilla
 
-Un cliente demo con **4 créditos** en distintos estados:
+**3 clientes** con **16 créditos** en total (5-6 cada uno), en distintos estados. Cada crédito pertenece a un cliente y solo es visible con su token.
+
+**Cliente Demo — `123456789` (6 créditos)**
 
 | id | monto      | cuotas | estado       | saldoPendiente |
 |----|------------|--------|--------------|----------------|
@@ -251,6 +260,28 @@ Un cliente demo con **4 créditos** en distintos estados:
 | 2  | 800.000    | 6      | PAGADO       | 0              |
 | 3  | 3.000.000  | 24     | EN_MORA      | 2.250.000      |
 | 4  | 500.000    | 3      | EN_REVISION  | 500.000        |
+| 5  | 2.200.000  | 18     | ACTIVO       | 1.500.000      |
+| 6  | 1.000.000  | 9      | PAGADO       | 0              |
+
+**Maria Gomez — `987654321` (5 créditos)**
+
+| id | monto      | cuotas | estado       | saldoPendiente |
+|----|------------|--------|--------------|----------------|
+| 7  | 4.500.000  | 24     | ACTIVO       | 3.900.000      |
+| 8  | 1.200.000  | 12     | EN_MORA      | 900.000        |
+| 9  | 600.000    | 4      | PAGADO       | 0              |
+| 10 | 2.800.000  | 18     | EN_REVISION  | 2.800.000      |
+| 11 | 1.750.000  | 15     | ACTIVO       | 1.200.000      |
+
+**Carlos Ramirez — `1122334455` (5 créditos)**
+
+| id | monto      | cuotas | estado       | saldoPendiente |
+|----|------------|--------|--------------|----------------|
+| 12 | 900.000    | 6      | PAGADO       | 0              |
+| 13 | 3.500.000  | 24     | EN_MORA      | 3.100.000      |
+| 14 | 250.000    | 2      | ACTIVO       | 130.000        |
+| 15 | 5.000.000  | 24     | EN_REVISION  | 5.000.000      |
+| 16 | 1.400.000  | 12     | ACTIVO       | 1.050.000      |
 
 Cada crédito incluye su plan de pagos con estados de cuota `PAGADA` / `PENDIENTE` / `VENCIDA`.
 

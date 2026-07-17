@@ -14,6 +14,7 @@ Una **app Android nativa** (Kotlin) que consuma esta API y ofrezca:
    - Pantalla con `documento` y `pin`.
    - Consumir `POST /auth/login`, guardar el token y usarlo en las siguientes peticiones.
    - Manejar el caso de credenciales inválidas (401).
+   - Hay **3 clientes** de prueba; cada token solo ve **sus propios** créditos. Asegúrate de enviar el token correcto y de no mezclar datos entre sesiones.
 
 2. **Listado de créditos**
    - Consumir `GET /loans` y mostrar la lista.

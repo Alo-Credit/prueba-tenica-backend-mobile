@@ -9,6 +9,8 @@
 GET {{baseUrl}}/health
 
 ### 1. Login OK -> guarda el token
+### Hay 3 clientes: 123456789/1234 (Demo), 987654321/2468 (Maria), 1122334455/1357 (Carlos).
+### Cada token solo ve SUS creditos.
 # @name login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
@@ -36,6 +38,24 @@ Authorization: Bearer {{token}}
 
 ### 2b. Listar creditos SIN token -> 401
 GET {{baseUrl}}/loans
+
+### 2e. Login como Maria y listar SUS creditos (scoping: ids 7-11)
+# @name loginMaria
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "documento": "987654321",
+  "pin": "2468"
+}
+
+###
+GET {{baseUrl}}/loans
+Authorization: Bearer {{loginMaria.response.body.token}}
+
+### 2f. Con el token de Maria pedir un credito ajeno (id 1) -> 404
+GET {{baseUrl}}/loans/1
+Authorization: Bearer {{loginMaria.response.body.token}}
 
 ### 2c. Simular latencia de 2 segundos
 GET {{baseUrl}}/loans?delay=2000
