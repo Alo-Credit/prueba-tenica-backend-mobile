@@ -1,0 +1,10 @@
+services:
+  alo-credit-mock:
+    build: .
+    container_name: alo-credit-mock-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - JWT_SECRET=alo-credit-super-secret-demo-key
+    restart: unless-stopped

@@ -1,0 +1,303 @@
+{
+  "info": {
+    "name": "Alo Credit - Mock Backend",
+    "description": "Coleccion de la prueba tecnica mobile Android. Incluye las 4 peticiones con ejemplos de exito y de error. El login guarda el token en la variable de coleccion {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. POST /auth/login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const data = pm.response.json();",
+              "    pm.collectionVariables.set('token', data.token);",
+              "    console.log('Token guardado en {{token}}');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"documento\": \"123456789\",\n  \"pin\": \"1234\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": [
+        {
+          "name": "Exito 200",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documento\": \"123456789\",\n  \"pin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+        },
+        {
+          "name": "Error 401 - credenciales invalidas",
+          "originalRequest": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documento\": \"000000000\",\n  \"pin\": \"9999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Credenciales invalidas\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. GET /loans",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/loans",
+          "host": ["{{baseUrl}}"],
+          "path": ["loans"],
+          "query": [
+            { "key": "delay", "value": "2000", "disabled": true },
+            { "key": "fail", "value": "true", "disabled": true }
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "Exito 200",
+          "originalRequest": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "[\n  { \"id\": \"1\", \"monto\": 1500000, \"cuotas\": 12, \"estado\": \"ACTIVO\", \"fecha\": \"2025-01-15\", \"saldoPendiente\": 875000 },\n  { \"id\": \"2\", \"monto\": 800000, \"cuotas\": 6, \"estado\": \"PAGADO\", \"fecha\": \"2024-06-10\", \"saldoPendiente\": 0 },\n  { \"id\": \"3\", \"monto\": 3000000, \"cuotas\": 24, \"estado\": \"EN_MORA\", \"fecha\": \"2024-11-01\", \"saldoPendiente\": 2250000 },\n  { \"id\": \"4\", \"monto\": 500000, \"cuotas\": 3, \"estado\": \"EN_REVISION\", \"fecha\": \"2026-07-10\", \"saldoPendiente\": 500000 }\n]"
+        },
+        {
+          "name": "Error 401 - sin token",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/loans",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans"]
+            }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Token invalido o expirado\"\n}"
+        },
+        {
+          "name": "Error 500 - forzado (?fail=true)",
+          "originalRequest": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans?fail=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans"],
+              "query": [{ "key": "fail", "value": "true" }]
+            }
+          },
+          "status": "Internal Server Error",
+          "code": 500,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Error interno del servidor (simulado)\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. GET /loans/:id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/loans/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["loans", "1"]
+        }
+      },
+      "response": [
+        {
+          "name": "Exito 200 - detalle con plan de pagos",
+          "originalRequest": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "1"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"id\": \"1\",\n  \"monto\": 1500000,\n  \"cuotas\": 12,\n  \"estado\": \"ACTIVO\",\n  \"fecha\": \"2025-01-15\",\n  \"saldoPendiente\": 875000,\n  \"pagos\": [\n    { \"numeroCuota\": 1, \"fechaVencimiento\": \"2025-02-15\", \"valor\": 125000, \"estado\": \"PAGADA\" },\n    { \"numeroCuota\": 2, \"fechaVencimiento\": \"2025-03-15\", \"valor\": 125000, \"estado\": \"PAGADA\" },\n    { \"numeroCuota\": 6, \"fechaVencimiento\": \"2025-07-15\", \"valor\": 125000, \"estado\": \"PENDIENTE\" }\n  ]\n}"
+        },
+        {
+          "name": "Error 404 - id inexistente",
+          "originalRequest": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/loans/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["loans", "999"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Credito no encontrado\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. POST /loan-applications",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"monto\": 1500000,\n  \"cuotas\": 12\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/loan-applications",
+          "host": ["{{baseUrl}}"],
+          "path": ["loan-applications"]
+        }
+      },
+      "response": [
+        {
+          "name": "Exito 201 - APROBADA (monto <= 2.000.000)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 1500000,\n  \"cuotas\": 12\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loan-applications",
+              "host": ["{{baseUrl}}"],
+              "path": ["loan-applications"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"id\": \"1001\",\n  \"estado\": \"APROBADA\"\n}"
+        },
+        {
+          "name": "Exito 201 - EN_REVISION (monto > 2.000.000)",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 3500000,\n  \"cuotas\": 18\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loan-applications",
+              "host": ["{{baseUrl}}"],
+              "path": ["loan-applications"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"id\": \"1002\",\n  \"estado\": \"EN_REVISION\"\n}"
+        },
+        {
+          "name": "Error 422 - validacion por campo",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monto\": 50000,\n  \"cuotas\": 36\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/loan-applications",
+              "host": ["{{baseUrl}}"],
+              "path": ["loan-applications"]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"error\": \"Error de validacion\",\n  \"detalle\": {\n    \"monto\": \"El monto debe estar entre 100.000 y 5.000.000 COP\",\n    \"cuotas\": \"Las cuotas deben estar entre 1 y 24\"\n  }\n}"
+        }
+      ]
+    }
+  ]
+}
