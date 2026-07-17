@@ -306,10 +306,17 @@ app.use((err, req, res, next) => {
 // ---------------------------------------------------------------------------
 // Arranque
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
-  console.log('===========================================');
-  console.log('  Alo Credit - Mock Backend');
-  console.log(`  Escuchando en http://localhost:${PORT}`);
-  console.log('  Cliente demo -> documento: 123456789 / pin: 1234');
-  console.log('===========================================');
-});
+// Solo levantamos el servidor si el archivo se ejecuta directamente
+// (con `node server.js`). Al importarlo desde los tests exportamos la app
+// sin abrir un puerto.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log('===========================================');
+    console.log('  Alo Credit - Mock Backend');
+    console.log(`  Escuchando en http://localhost:${PORT}`);
+    console.log('  Cliente demo -> documento: 123456789 / pin: 1234');
+    console.log('===========================================');
+  });
+}
+
+module.exports = app;

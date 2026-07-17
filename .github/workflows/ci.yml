@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  test:
+    name: Pruebas unitarias
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas
+        run: npm test
+
+  docker:
+    name: Build y smoke test de la imagen Docker
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build de la imagen
+        run: docker build -t alo-credit-mock .
+
+      - name: Levantar contenedor
+        run: docker run -d --name alo-credit-mock -p 3000:3000 alo-credit-mock
+
+      - name: Esperar y verificar /health
+        run: |
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:3000/health; then
+              echo "\nServidor arriba"
+              exit 0
+            fi
+            echo "Esperando al servidor... ($i)"
+            sleep 2
+          done
+          echo "El servidor no respondio a tiempo"
+          docker logs alo-credit-mock
+          exit 1
+
+      - name: Detener contenedor
+        if: always()
+        run: docker rm -f alo-credit-mock

@@ -1,5 +1,7 @@
 # Alo Credit — Mock Backend
 
+[![CI](https://github.com/Alo-Credit/prueba-tenica-backend-mobile/actions/workflows/ci.yml/badge.svg)](https://github.com/Alo-Credit/prueba-tenica-backend-mobile/actions/workflows/ci.yml)
+
 API simulada de una fintech de créditos (**Alo Credit**), construida en Node.js + Express, pensada como backend de apoyo para la **prueba técnica de un desarrollador mobile Android**.
 
 - Sin base de datos: todos los datos viven **en memoria**.
@@ -301,12 +303,33 @@ Si usas VS Code, el archivo **`requests.http`** (extensión *REST Client*) tiene
 
 ---
 
+## Pruebas
+
+Pruebas de integración de todos los endpoints con el runner nativo de Node (`node:test`) + `supertest`.
+
+```bash
+npm install
+npm test
+```
+
+Cubren: login (éxito/401), autenticación (sin token / token inválido), listado y **scoping por token**, detalle y 404 (incluido acceso cruzado), validaciones 422 y estados `APROBADA` / `EN_REVISION`, y `/health`.
+
+## Integración continua (CI)
+
+El workflow **[.github/workflows/ci.yml](.github/workflows/ci.yml)** se ejecuta en cada push a `develop`/`main` y en cada Pull Request:
+
+1. **Pruebas unitarias** — `npm ci` + `npm test` sobre Node 20.
+2. **Build y smoke test de Docker** — construye la imagen, levanta el contenedor y verifica `GET /health`.
+
+---
+
 ## Estructura del proyecto
 
 ```
 .
 ├── server.js                               # Toda la lógica de la API
 ├── package.json
+├── package-lock.json
 ├── Dockerfile
 ├── docker-compose.yml
 ├── .dockerignore
@@ -314,5 +337,10 @@ Si usas VS Code, el archivo **`requests.http`** (extensión *REST Client*) tiene
 ├── PRUEBA_TECNICA.md                       # Enunciado para el candidato Android
 ├── requests.http                           # Peticiones para REST Client (VS Code)
 ├── Alo-Credit.postman_collection.json      # Colección de Postman
-└── Alo-Credit.postman_environment.json     # Environment de Postman (baseUrl / token)
+├── Alo-Credit.postman_environment.json     # Environment de Postman (baseUrl / token)
+├── test/
+│   └── api.test.js                         # Pruebas de integración (node:test + supertest)
+└── .github/
+    └── workflows/
+        └── ci.yml                          # Pipeline de CI (tests + build Docker)
 ```
